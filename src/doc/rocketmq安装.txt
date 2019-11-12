@@ -1,0 +1,139 @@
+一、安装maven
+RocketMQ依赖maven打包，所以先要在虚拟机中安装maven，我使用的是v3.3.9。
+1：进入指定目录下载maven 包
+# cd /usr/local 
+
+# wget http://mirrors.hust.edu.cn/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+
+2：解压并重新命名文件夹
+# tar -zxvf apache-maven-3.3.9-bin.tar.gz 
+ 
+# mv apache-maven-3.3.9 /usr/local/maven3
+
+3：修改仓库地址为阿里云，不修改下载依赖的时候总报超时
+# cd /usr/local/maven3/conf
+ 
+# vim settings.xml
+在中间偏下的位置添加<mirror>标签（默认是注释的）
+ <mirror>
+       <id>alimaven</id>
+       <name>aliyun maven</name>
+       <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+       <mirrorOf>central</mirrorOf>       
+ </mirror>
+ 
+4：配置环境变量
+vim /etc/profile
+添加maven_home
+
+ export M2_HOME=/usr/local/maven3
+ export PATH=$PATH:$JAVA_HOME/bin:$M2_HOME/bin
+5：保存退出（shift +zz）刷新配置文件生效
+
+# source /etc/profile
+6：检查安装结果
+
+#mvn -v
+
+二、安装RocketMQ
+1：下载源码的zip压缩包，官网上提供了5种镜像下载链接，一个推荐镜像链接，两个PGP签名以及这两个的备份，下载之后解压到/usr/local/下，然后删除zip文件
+# cd /usr/local
+ 
+# wget http://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.4.0/rocketmq-all-4.4.0-source-release.zip
+ 
+# unzip -d /usr/local/ rocketmq-all-4.4.0-source-release.zip
+ 
+# rm -rf rocketmq-all-4.4.0-source-release.zip
+2：使用maven打包，这个要打好久
+
+# cd /usr/local/rocketmq-all-4.4.0/
+ 
+# mvn -Prelease-all -DskipTests clean install -U
+
+3：RocketMQserver默认初始内存、最大内存都是4g，新生代内存是2g，broker是8g、8g、4g，根据个人情况修改JAVA_OPT="${JAVA_OPT} -server一行参数
+  我这里修改的都是512m
+1 vim distribution/target/apache-rocketmq/bin/runserver.sh
+2 vim distribution/target/apache-rocketmq/bin/runbroker.sh
+
+4：将nameserver地址添加到环境变量中
+
+1 vim /etc/profile
+2 
+3 export NAMESRV_ADDR=127.0.0.1:9876
+4 
+5 # 刷新配置文件
+6 source /etc/profile
+
+5：后台运行nameserver，将日志重定向到指定文件
+ #cd /usr/local/rocketmq-all-4.4.0/distribution/target/apache-rocketmq/bin/
+
+# nohup sh mqnamesrv > /usr/local/rocketdata/namesrv.log 2>&1&
+ 
+ #查看启动日志
+# tail -f /usr/local/rocketdata/namesrv.log
+运行broker
+
+# nohup sh mqbroker > /usr/local/rocketdata/broker.log 2>&1&
+# 
+ #查看启动日志
+# tail -f /usr/local/rocketdata/broker.log
+6：新开窗口，一个生产一个消费，测试消费。警告忽略
+
+ #窗口1
+# sh tools.sh org.apache.rocketmq.example.quickstart.Producer
+ #窗口2
+# sh tools.sh org.apache.rocketmq.example.quickstart.Consumer
+
+三、控制台安装
+1：因为控制台源码在github上，我这里在虚拟中安装git，直接down源码，因为console是springboot项目，也可以下载到本地修改配置文件打包，将打完的jar包传到虚拟机中。
+
+ #使用yum安装git
+ yum install git
+ 
+ 2：进入/usr/local下
+#git clone https://github.com/apache/rocketmq-externals
+3：rocketmq-externals里面有所有Apache RocketMq外部项目，有的还在孵化中，我主要是使用rocketmq-console，进入到console项目中，修改resources文件夹下面的配置文件
+
+复制代码
+#cd /usr/local/rocketmq-externals/rocketmq-console/src/main/resources
+ 
+ #查看配置文件名称
+# ll
+ 
+ #打开配置文件
+# vim application.properties
+
+修改以下配置：
+server.port=8085  //控制台访问端口
+rocketmq.config.namesrvAddr= //rocketmq的ip和端口
+rocketmq.config.isVIPChannel=false
+
+#进入pom目录
+#cd /usr/local/rocketmq-externals/rocketmq-console
+#打包并且跳过测试
+mvn clean install -Dmaven.test.skip=true
+
+#然后进入target目录下找到文件rocketmq-console-ng-1.0.1.jar
+#cd /usr/local/rocketmq-externals/rocketmq-console/target
+
+#执行rocketmq-console-ng-1.0.1.jar 输出日志到/usr/local/rocketdata/console/console.out  并且后台运行
+nohup java -jar rocketmq-console-ng-1.0.1.jar > /usr/local/rocketdata/console/console.out 2>&1&
+
+三：注意事项
+如果报错：org.apache.rocketmq.remoting.exception.RemotingConnectException:
+connect to <172.16.74.201:10911> failed
+
+进入conf目录
+#cd /usr/local/rocketmq-all-4.4.0/distribution/target/apache-rocketmq/conf/
+#编辑broker.conf 
+#vi broker.conf 
+增加：
+namesrvAddr=39.107.235.218:9876
+brokerIP1=39.107.235.218
+
+broker和namesrv关闭
+#sh mqshutdown broker
+#sh mqshutdown namesrv
+然后启动：
+#nohup sh mqbroker -c ../conf/broker.conf > /usr/local/rocketdata/broker.log 2>&1&
+
