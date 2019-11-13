@@ -137,3 +137,4 @@ broker和namesrv关闭
 然后启动：
 #nohup sh mqbroker -c ../conf/broker.conf > /usr/local/rocketdata/broker.log 2>&1&
 
+RocketMq-console控制台访问地址：http://39.107.235.218:8085/
