@@ -29,7 +29,7 @@ public class Consumer {
       //设置广播消费模式
         consumer.setMessageModel(MessageModel.BROADCASTING);
         //设置consumer所订阅的Topic和Tag，*代表全部的Tag
-        consumer.subscribe("TopicTest", "*");
+        consumer.subscribe("TopicDemo", "*");
 
         //设置一个Listener，主要进行消息的逻辑处理
         consumer.registerMessageListener(new MessageListenerConcurrently() {

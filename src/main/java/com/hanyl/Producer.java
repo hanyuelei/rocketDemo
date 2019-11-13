@@ -33,7 +33,7 @@ public class Producer {
         // 发送1条消息到Topic为TopicTest，tag为TagA，消息内容为“Hello RocketMQ”拼接上i的值
         try {
             // 封装消息
-            Message msg = new Message("TopicTest",// topic
+            Message msg = new Message("TopicDemo",// topic
                     "TagA",// tag
                     ("Hello RocketMQ,你好你好44444").getBytes(RemotingHelper.DEFAULT_CHARSET)// body
             );
